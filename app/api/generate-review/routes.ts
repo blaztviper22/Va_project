@@ -1,8 +1,6 @@
-// app/api/generate-review/route.ts
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
-// Define types for better type safety
 interface RequestBody {
   apiKey: string;
   formData: {
@@ -17,10 +15,7 @@ export async function POST(request: Request) {
   try {
     // Validate request method
     if (request.method !== 'POST') {
-      return NextResponse.json(
-        { error: 'Method not allowed' },
-        { status: 405 }
-      );
+      return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
     }
 
     // Parse the request body
@@ -29,23 +24,15 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'API key is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
     if (!formData?.serviceType || !formData?.staffName || !formData?.specific || !formData?.improvement) {
-      return NextResponse.json(
-        { error: 'Missing required form fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required form fields' }, { status: 400 });
     }
 
     // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: apiKey,
-    });
+    const openai = new OpenAI({ apiKey });
 
     // Create completion
     const completion = await openai.chat.completions.create({
@@ -72,24 +59,28 @@ export async function POST(request: Request) {
       max_tokens: 250
     });
 
+    // Check if the completion has choices and content
+    if (!completion.choices || !completion.choices[0] || !completion.choices[0].message) {
+      throw new Error('Invalid response from OpenAI');
+    }
+
     // Return the generated review
-    return NextResponse.json({
-      review: completion.choices[0].message.content
-    });
+    return NextResponse.json({ review: completion.choices[0].message.content });
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('Error in generate-review route:', error);
     
     // Handle different types of errors
     if (error instanceof OpenAI.APIError) {
       return NextResponse.json(
-        { error: 'OpenAI API error: ' + error.message },
+        { error: `OpenAI API error: ${error.message}` },
         { status: error.status || 500 }
       );
     }
 
+    // For any other error, return a generic error message
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'An error occurred while generating the review. Please try again.' },
       { status: 500 }
     );
   }
