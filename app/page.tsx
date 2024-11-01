@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Copy, Loader2 } from 'lucide-react'
+import { RESPONSE_LIMIT_DEFAULT } from 'next/dist/server/api-utils'
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -50,6 +51,8 @@ export default function Home() {
           formData
         })
       })
+
+      console.log(response)
 
       const data = await response.json()
 

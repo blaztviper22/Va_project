@@ -1,6 +1,8 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 interface RequestBody {
   apiKey: string;
   formData: {
@@ -13,16 +15,11 @@ interface RequestBody {
 
 export async function POST(request: Request) {
   try {
-    // Validate request method
-    if (request.method !== 'POST') {
-      return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-    }
-
-    // Parse the request body
     const body: RequestBody = await request.json();
     const { apiKey, formData } = body;
 
-    // Validate required fields
+    console.log(body);
+
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
@@ -31,10 +28,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required form fields' }, { status: 400 });
     }
 
-    // Initialize OpenAI client
     const openai = new OpenAI({ apiKey });
 
-    // Create completion
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{
@@ -59,29 +54,15 @@ export async function POST(request: Request) {
       max_tokens: 250
     });
 
-    // Check if the completion has choices and content
-    if (!completion.choices || !completion.choices[0] || !completion.choices[0].message) {
-      throw new Error('Invalid response from OpenAI');
-    }
-
-    // Return the generated review
     return NextResponse.json({ review: completion.choices[0].message.content });
 
   } catch (error) {
-    console.error('Error in generate-review route:', error);
+    console.error('API Error:', error);
     
-    // Handle different types of errors
     if (error instanceof OpenAI.APIError) {
-      return NextResponse.json(
-        { error: `OpenAI API error: ${error.message}` },
-        { status: error.status || 500 }
-      );
+      return NextResponse.json({ error: `OpenAI API error: ${error.message}` }, { status: error.status || 500 });
     }
 
-    // For any other error, return a generic error message
-    return NextResponse.json(
-      { error: 'An error occurred while generating the review. Please try again.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
